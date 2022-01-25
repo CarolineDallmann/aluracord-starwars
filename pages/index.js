@@ -1,9 +1,11 @@
 import { Box, Button, Text, TextField, Image } from '@skynexui/components';
 import appConfig from '../config.json'
 
+
 function GlobalStyle() {
     return (
         <style global jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Play&display=swap');
         * {
         margin: 0;
         padding: 0;
@@ -11,7 +13,7 @@ function GlobalStyle() {
         list-style: none;
       }
       body {
-        font-family: 'Open Sans', sans-serif;
+        font-family: 'Play', sans-serif;
       }
       /* App fit Height */ 
       html, body, #__next {
@@ -46,20 +48,6 @@ function Titulo(props) {
 }
 
 
-// function HomePage() {
-//     //JSX
-//     return (
-//         <div>
-//             <GlobalStyle/>
-//             <Titulo tag="h2">Boas Vindas!</Titulo>
-//             <h2>Discord - Alura Matrix</h2>
-
-//         </div>
-//     )
-// }
-
-// export default HomePage
-
 export default function PaginaInicial() {
     const username = 'peas';
 
@@ -69,8 +57,8 @@ export default function PaginaInicial() {
             <Box
                 styleSheet={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: appConfig.theme.colors.primary[500],
-                    backgroundImage: 'url(https://virtualbackgrounds.site/wp-content/uploads/2020/08/the-matrix-digital-rain.jpg)',
+                    backgroundColor: appConfig.theme.colors.primary[100],
+                    backgroundImage: 'url(https://raw.githubusercontent.com/CarolineDallmann/aluracord-starwars/12f048442f14074c01b4ca00804fe7d6aa73b25d/images/fundo.jpg)',
                     backgroundRepeat: 'no-repeat', backgroundSize: 'cover', backgroundBlendMode: 'multiply',
                 }}
             >
@@ -86,7 +74,7 @@ export default function PaginaInicial() {
                         width: '100%', maxWidth: '700px',
                         borderRadius: '5px', padding: '32px', margin: '16px',
                         boxShadow: '0 2px 10px 0 rgb(0 0 0 / 20%)',
-                        backgroundColor: appConfig.theme.colors.neutrals[700],
+                        backgroundColor: appConfig.theme.colors.neutrals[500],
                     }}
                 >
                     {/* Formulário */}
@@ -97,9 +85,10 @@ export default function PaginaInicial() {
                             width: { xs: '100%', sm: '50%' }, textAlign: 'center', marginBottom: '32px',
                         }}
                     >
-                        <Titulo tag="h2">Boas vindas de volta!</Titulo>
+                        <Titulo tag="h2">Seja bem vindo! Eu sei!</Titulo>
                         <Text variant="body3" styleSheet={{ marginBottom: '32px', color: appConfig.theme.colors.neutrals[300] }}>
                             {appConfig.name}
+                            
                         </Text>
 
                         <TextField
