@@ -4,6 +4,14 @@ import { useRouter } from 'next/router';
 import appConfig from '../config.json'
 
 
+async function getNome(user) {
+    const response = await fetch(`https://api.github.com/users/${user}`);
+    const dados = await response.json()
+    if (dados.message) {
+        return false
+    }
+    return dados.name
+}
 
 
 
@@ -22,14 +30,23 @@ function Titulo(props) {
     )
 }
 
-function limpar() {
-
-}
-
 
 export default function PaginaInicial() {
     const [username, setUsername] = React.useState('')
+    const [dirty, setDirty] = React.useState(false)
+    const [nome, setNome] = React.useState('')
+    const [found, setFound] = React.useState(true)
     const roteamento = useRouter();
+
+    function getUrl() {
+        if (!found) {
+            return 'https://hugocalixto.com.br/wp-content/uploads/sites/22/2020/07/error-404-1.png'
+        }
+        if (username.length > 2) {
+            return `https://github.com/${username}.png`
+        }
+        return 'https://www.hojeemdia.com.br/polopoly_fs/1.711510.1556898208!/image/image.jpg_gen/derivatives/landscape_653/image.jpg'
+    }
 
     return (
         <>
@@ -65,11 +82,7 @@ export default function PaginaInicial() {
                         as="form"
                         onSubmit={function (infoEvento) {
                             infoEvento.preventDefault()
-                            if(username.length > 2){
                             roteamento.push('/chat')
-                            } else {
-                                alert('Digite mais que 2 caracteres')
-                            }
                         }}
                         styleSheet={{
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -77,9 +90,8 @@ export default function PaginaInicial() {
                         }}
                     >
                         <Titulo tag="h2">Seja bem vindo! Eu sei!</Titulo>
-                        <Text variant="body3" className="teste" styleSheet={{ marginBottom: '32px', color: appConfig.theme.colors.neutrals[300] }}>
+                        <Text variant="body3" styleSheet={{ marginBottom: '32px', color: appConfig.theme.colors.neutrals[300] }}>
                             {appConfig.name}
-
                         </Text>
 
                         <TextField
@@ -90,9 +102,23 @@ export default function PaginaInicial() {
                                 //Onde está o valor?
                                 let valor = event.target.value
                                 //Trocar o valor da variável através do React
-                               
-                                setUsername(valor) 
+                                if (valor.length > 2) {
+                                    getNome(valor).then((e) => {
+                                        if (e) {
+                                            setNome(e)
+                                            setFound(true)
+                                        } else {
+                                            setNome('')
+                                            setFound(false)
+                                        }
+                                    })
+                                } else {
+                                    setNome('')
+                                    setFound(true)
+                                }
 
+                                setUsername(valor)
+                                setDirty(true)
                             }}
                             fullWidth
                             textFieldColors={{
@@ -104,8 +130,29 @@ export default function PaginaInicial() {
                                 },
                             }}
                         />
+                        {username.length <= 2 && dirty &&
+                            <Text
+                                styleSheet={{
+                                    marginBottom: '10px', color: appConfig.theme.colors.primary[700],
+                                    fontFamily: 'Play',
+                                }}
+                            >
+                                Digite mais que 2 caracteres
+                            </Text>}
+
+                        {!found &&
+                            <Text
+                                styleSheet={{
+                                    marginBottom: '10px', color: appConfig.theme.colors.primary[700],
+                                    fontFamily: 'Play'
+                                }}>
+                                Usuário inválido
+                            </Text>
+
+                        }
+
                         <Button
-                            // disabled={username.length <= 2}
+                            disabled={username.length <= 2 || !found}
                             type='submit'
                             label='Entrar a Bordo'
                             fullWidth
@@ -144,11 +191,10 @@ export default function PaginaInicial() {
                                 border: '1px solid',
                                 borderColor: appConfig.theme.colors.primary[500],
                             }}
-                            src={username.length > 2 ?
-                                `https://github.com/${username}.png` :
-                                'https://www.hojeemdia.com.br/polopoly_fs/1.711510.1556898208!/image/image.jpg_gen/derivatives/landscape_653/image.jpg'}
+                            src={getUrl()}
                         />
-                        <Text
+
+                        {found && <Text
                             variant="body4"
                             styleSheet={{
                                 color: appConfig.theme.colors.neutrals[200],
@@ -156,10 +202,11 @@ export default function PaginaInicial() {
                                 padding: '3px 10px',
                                 borderRadius: '1000px',
                                 textAlign: 'center',
+                                fontFamily: 'Play'
                             }}
                         >
-                            {username.length > 2 ? username : 'Digite mais que 2 caracteres'}
-                        </Text>
+                            {nome || 'Chewie'}
+                        </Text>}
                     </Box>
                     {/* Photo Area */}
                 </Box>

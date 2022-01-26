@@ -9,7 +9,7 @@ function GlobalStyle() {
         list-style: none;
       }
       body {
-        font-family: 'Play', sans-serif !important; 
+        font-family: 'Play', sans-serif 
       }
       /* App fit Height */ 
       html, body, #__next {
