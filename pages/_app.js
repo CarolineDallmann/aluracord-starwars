@@ -11,6 +11,17 @@ function GlobalStyle() {
       body {
         font-family: 'Play', sans-serif 
       }
+      ::-webkit-scrollbar {
+        width: 10px; 
+      }
+      ::-webkit-scrollbar-track {
+        background: #212931; 
+        border-radius: 5px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #181F25; 
+        border-radius: 5px;
+      }
       /* App fit Height */ 
       html, body, #__next {
         min-height: 100vh;
