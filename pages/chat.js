@@ -1,27 +1,95 @@
 import { Box, Text, TextField, Image, Button } from '@skynexui/components';
 import React, { useRef } from 'react';
 import appConfig from '../config.json';
+import { createClient } from '@supabase/supabase-js'
+import Popover from '@mui/material/Popover';
+import { getNome } from '../services/getNome'
+import { useRouter } from 'next/router';
+import { ButtonSendSticker } from '../src/components/ButtonSendSticker'
+
+const supabase_anon_key =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MzI4MzcxNywiZXhwIjoxOTU4ODU5NzE3fQ.M0CVmP9Caqfk5A1yJtpNvhcjhTrpm8HowggEFtoz2gc'
+const supabase_url = 'https://mqddclipbfhmaqneuyax.supabase.co'
+const supabaseClient = createClient(supabase_url, supabase_anon_key)
+
+function escutaMsgTempoReal(adicionaMsg) {
+    return supabaseClient
+        .from('mensagens')
+        .on('INSERT', (respostaLive) => {
+            adicionaMsg(respostaLive.new)
+        })
+        .subscribe()
+}
 
 export default function ChatPage() {
+    const roteamento = useRouter();
+    const usuarioLogado = roteamento.query.username
     const [mensagem, setMensagem] = React.useState('');
     const [listaDeMensagens, setListaDeMensagens] = React.useState([]);
+    const [loading, setLoading] = React.useState(false)
+    const [deleting, setDeleting] = React.useState([])
+
+    React.useEffect(() => {
+        supabaseClient
+            .from('mensagens')
+            .select('*')
+            .order('id', { ascending: false })
+            .then(({ data }) => {
+                setListaDeMensagens(data)
+            });
+
+        const subscription = escutaMsgTempoReal((novaMensagem) => {
+            setListaDeMensagens((valorAtualLista) => {
+                return [
+                    novaMensagem,
+                    ...valorAtualLista,
+                ]
+            });
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        }
+    }, []);
+
+    function handleDelete(id) {
+        setDeleting((valorAtual) => {
+            return [...valorAtual, id]
+        })
+        supabaseClient
+            .from('mensagens')
+            .delete()
+            .match({ id })
+            .then(() => {
+                setDeleting((valorAtual) => {
+                    return valorAtual.filter((vl) => {
+                        return vl !== id
+                    })
+                })
+                setListaDeMensagens(listaDeMensagens.filter((element) => {
+                    return element.id !== id
+                }))
+            })
+    }
 
     function handleNovaMensagem(novaMensagem) {
-        const primeiraMsg = listaDeMensagens[0]
         const mensagem = {
-            id: primeiraMsg ? primeiraMsg.id + 1 : 1,
-            de: 'carolinedallmann',
+            de: usuarioLogado,
             texto: novaMensagem,
         };
 
-        setListaDeMensagens([
-            mensagem,
-            ...listaDeMensagens,
-        ]);
+        setLoading(true)
+
+        supabaseClient
+            .from('mensagens')
+            .insert([
+                mensagem
+            ])
+            .then(({ data }) => {
+                setLoading(false)
+            })
         setMensagem('');
     }
-
-
 
     return (
         <Box
@@ -63,19 +131,11 @@ export default function ChatPage() {
                 >
                     <MessageList
                         mensagens={listaDeMensagens}
-                        onDelete={(id) => {
-                            setListaDeMensagens(listaDeMensagens.filter((element) => {
-                                return element.id !== id
-                            }))
-                        }} />
+                        onDelete={handleDelete}
+                        loading={loading}
+                        bloqueados={deleting}
+                    />
 
-                    {/* {listaDeMensagens.map((mensagemAtual) => {
-                        return (
-                            <li key={mensagemAtual.id}>
-                                {mensagemAtual.de}: {mensagemAtual.texto}
-                            </li>
-                        )
-                    })} */}
                     <Box
                         as="form"
                         styleSheet={{
@@ -97,7 +157,7 @@ export default function ChatPage() {
                                     }
                                 }
                             }}
-                            placeholder="Insira sua mensagem aqui..."
+                            placeholder="Insira sua transmissão aqui..."
                             type="textarea"
                             styleSheet={{
                                 width: '100%',
@@ -111,6 +171,14 @@ export default function ChatPage() {
 
                             }}
                         />
+
+                        <ButtonSendSticker
+                            onStickerClick={(sticker) => {
+                                console.log('[usando o comp]');
+                                handleNovaMensagem(`:sticker: ${sticker}`)
+                            }}
+                        />
+
                         <Button
                             type='button'
                             label='Ok'
@@ -125,6 +193,7 @@ export default function ChatPage() {
                                 height: '44px',
                                 borderRadius: '10px 5px 10px 5px',
                                 backgroundColor: appConfig.theme.colors.primary[500],
+                                fontFamily: 'Play'
                             }}
                             onClick={() => {
                                 if (mensagem.length >= 1) {
@@ -133,7 +202,6 @@ export default function ChatPage() {
                                 }
                             }}
                         >
-                            OK
                         </Button>
                     </Box>
                 </Box>
@@ -145,16 +213,30 @@ export default function ChatPage() {
 function Header() {
     return (
         <>
-            <Box styleSheet={{ width: '100%', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} >
+            <Box
+                styleSheet={{
+                    width: '100%',
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                }} >
+
                 <Text variant='heading5' styleSheet={{ fontFamily: 'Play', }}>
                     Chat
                 </Text>
                 <Button
-                    variant='tertiary'
-                    colorVariant='neutral'
+                    buttonColors={{
+                        contrastColor: appConfig.theme.colors.neutrals["000"],
+                        mainColor: appConfig.theme.colors.primary[500],
+                        mainColorLight: appConfig.theme.colors.primary[400],
+                        mainColorStrong: appConfig.theme.colors.primary[600],
+                    }}
                     label='Logout'
                     href="/"
-
+                    styleSheet={{
+                        fontFamily: 'Play'
+                    }}
                 />
             </Box>
         </>
@@ -164,7 +246,25 @@ function Header() {
 
 
 function MessageList(props) {
-    console.log(props);
+    const [usuarioDestacado, setUsuarioDestacado] = React.useState()
+    const [nomeUsuario, setNomeUsuario] = React.useState()
+    const [openedPopover, setOpenedPopover] = React.useState(false)
+    const [popoverAnchor, setPopoverAnchor] = React.useState(null)
+
+
+
+    const handlePopoverOpen = (event) => {
+        setOpenedPopover(true);
+        setPopoverAnchor(event.currentTarget)
+    };
+
+    const handlePopoverClose = () => {
+        setOpenedPopover(false);
+    };
+
+    const popoverEnter = () => { setOpenedPopover(true) }
+    const popoverLeave = () => { setOpenedPopover(false) }
+
     return (
         <Box
             tag="ul"
@@ -179,12 +279,111 @@ function MessageList(props) {
 
             }}
         >
+            {props.loading && <Text
+                styleSheet={{
+                    fontFamily: 'Play'
+                }}
+            >
+                ✉️ Enviando mensagem ...
+            </Text>}
+
+            <Popover
+                open={openedPopover}
+                BackdropProps={{ sx: { pointerEvents: 'none' } }}
+                PaperProps={{
+                    sx: { pointerEvents: 'auto' },
+                    onMouseEnter: popoverEnter,
+                    onMouseLeave: popoverLeave
+                }}
+                sx={{
+                    pointerEvents: 'none',
+                    height: 400,
+                    width: {
+                        xs: 200,
+                        sm: 300,
+                        md: 400,
+                        lg: 500,
+                        xl: 500,
+                    },
+                }}
+                anchorEl={popoverAnchor}
+                anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'left',
+                }}
+                transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'left',
+                }}
+            >
+                <Box
+                    styleSheet={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        flex: 1,
+                        alignItems: 'center',
+                        color: appConfig.theme.colors.neutrals[100],
+                        marginBottom: '16px',
+
+                    }}
+                >
+                    <Image
+                        src={`https://github.com/${usuarioDestacado}.png`}
+                        styleSheet={{
+                            marginBottom: '16px',
+                            border: '1px solid',
+                        }}
+                    />
+                    <Box
+                        styleSheet={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+
+                        }}
+                    >
+                        <Text
+                            styleSheet={{
+                                fontFamily: 'Play',
+                                color: 'black',
+                            }}
+                        >
+                            {nomeUsuario}
+                        </Text>
+
+                        <Button
+                            iconName="FaGithub"
+                            href={`https://github.com/${usuarioDestacado}`}
+                            buttonColors='none'
+                            styleSheet={{
+                                maxWidth: '20px',
+                                maxHeight: '20px',
+                                marginLeft: '10px',
+                                marginRight: '10px'
+                            }}
+                            buttonColors={{
+                                contrastColor: appConfig.theme.colors.neutrals["000"],
+                                mainColor: appConfig.theme.colors.primary[500],
+                                mainColorLight: appConfig.theme.colors.primary[400],
+                                mainColorStrong: appConfig.theme.colors.primary[600],
+                            }}
+
+
+                        ></Button>
+
+                    </Box>
+
+                </Box>
+            </Popover>
+
             {props.mensagens.map((mensagem) => {
                 return (
                     <Text
                         key={mensagem.id}
                         tag="li"
                         styleSheet={{
+                            fontFamily: 'Play',
                             borderRadius: '5px',
                             padding: '6px',
                             marginBottom: '12px',
@@ -212,9 +411,23 @@ function MessageList(props) {
                                         display: 'inline-block',
                                         marginRight: '8px',
                                     }}
-                                    src={`https://github.com/carolinedallmann.png`}
+                                    src={`https://github.com/${mensagem.de}.png`}
+
+                                    onMouseEnter={(event) => {
+                                        handlePopoverOpen(event)
+                                        setUsuarioDestacado(mensagem.de)
+                                        getNome(mensagem.de).then((nome) => {
+                                            setNomeUsuario(nome)
+                                        })
+                                    }}
+                                    onMouseLeave={handlePopoverClose}
                                 />
-                                <Text tag="strong">
+                                <Text
+                                    tag="strong"
+                                    styleSheet={{
+                                        fontFamily: 'Play'
+                                    }}
+                                >
                                     {mensagem.de}
                                 </Text>
                                 <Text
@@ -222,6 +435,7 @@ function MessageList(props) {
                                         fontSize: '10px',
                                         marginLeft: '8px',
                                         color: appConfig.theme.colors.neutrals[300],
+                                        fontFamily: 'Play'
                                     }}
                                     tag="span"
                                 >
@@ -231,6 +445,9 @@ function MessageList(props) {
 
                             <Box>
                                 <Button
+                                    disabled={props.bloqueados.find((id) => {
+                                        return id === mensagem.id
+                                    })}
                                     type='button'
                                     label='X'
                                     styleSheet={{
@@ -238,8 +455,6 @@ function MessageList(props) {
                                         height: '33px',
                                         borderRadius: '10px 5px 10px 5px',
                                         backgroundColor: appConfig.theme.colors.primary[500],
-
-
                                     }}
                                     buttonColors={{
                                         contrastColor: appConfig.theme.colors.neutrals["000"],
@@ -252,13 +467,19 @@ function MessageList(props) {
                                         props.onDelete(mensagem.id)
 
                                     }}
-                                >X</Button>
+                                ></Button>
                             </Box>
                         </Box>
-                        {mensagem.texto}
+                        {mensagem.texto.startsWith(':sticker:') ? (
+                            <Image src={mensagem.texto.replace(':sticker:', '')} />
+                        ) : (
+                            mensagem.texto
+                        )}
+
                     </Text>
                 );
             })}
+
         </Box>
     )
 }

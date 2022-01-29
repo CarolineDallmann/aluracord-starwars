@@ -2,17 +2,7 @@ import { Box, Button, Text, TextField, Image } from '@skynexui/components';
 import React from 'react';
 import { useRouter } from 'next/router';
 import appConfig from '../config.json'
-
-
-async function getNome(user) {
-    const response = await fetch(`https://api.github.com/users/${user}`);
-    const dados = await response.json()
-    if (dados.message) {
-        return false
-    }
-    return dados.name
-}
-
+import { getNome } from '../services/getNome'
 
 
 function Titulo(props) {
@@ -82,7 +72,7 @@ export default function PaginaInicial() {
                         as="form"
                         onSubmit={function (infoEvento) {
                             infoEvento.preventDefault()
-                            roteamento.push('/chat')
+                            roteamento.push(`/chat?username=${username}`)
                         }}
                         styleSheet={{
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -99,9 +89,7 @@ export default function PaginaInicial() {
                             placeholder='Digite seu usuário GitHub'
                             onChange={function (event) {
                                 console.log('usuario digitou', event.target.value);
-                                //Onde está o valor?
                                 let valor = event.target.value
-                                //Trocar o valor da variável através do React
                                 if (valor.length > 2) {
                                     getNome(valor).then((e) => {
                                         if (e) {
